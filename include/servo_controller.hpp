@@ -15,8 +15,8 @@
 #include "sensor_msgs/msg/joy.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 
-#define EC_TIMEOUTMON 500
-#define NUMOFSERVO_DRIVE 2
+#define EC_TIMEOUTMON 2000
+#define NUMOFSERVO_DRIVE 2 
 
 #define Control_Word 0x6040
 #define Status_Word 0x6041

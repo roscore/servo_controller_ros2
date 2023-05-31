@@ -72,9 +72,9 @@ void ServoController::StateCheckCallback()
 	}
 
 	// Extract current thread
-	auto curr_thread = std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
-	auto info_message = "\n<<statecheck THREAD " + curr_thread + ">> ";
-	RCLCPP_INFO(this->get_logger(), info_message);
+	//auto curr_thread = std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
+	//auto info_message = "\n<<statecheck THREAD " + curr_thread + ">> ";
+	//RCLCPP_INFO(this->get_logger(), info_message);
 };
 
 void ServoController::DataCycleCallback()
@@ -115,9 +115,9 @@ void ServoController::DataCycleCallback()
 	}
 
 	// Extract current thread
-	auto curr_thread = std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
-	auto info_message = "\n<<datacycle THREAD " + curr_thread + ">> ";
-	RCLCPP_INFO(this->get_logger(), info_message);
+	//auto curr_thread = std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
+	//auto info_message = "\n<<datacycle THREAD " + curr_thread + ">> ";
+	//RCLCPP_INFO(this->get_logger(), info_message);
 };
 
 static int ServoWrite8 (uint16 slave, uint16 index, uint8 subindex, uint8 value)
@@ -222,7 +222,7 @@ void Homing(void)
 		printf("Control Word: %d\n", ob2);
 
 
-		os=sizeof(ob2); ob2 = 0x06;	//Set HM mode
+		os=sizeof(ob2); ob2 = 0x0B;	//Set HM mode origin -> 0x06
 		wkc_count=ec_SDOwrite(k+1, 0x6060,0x00,FALSE,os, &ob2,EC_TIMEOUTRXM); //change slave operation mode
 		printf("Control Word: %d\n", ob2);
 
@@ -239,7 +239,7 @@ void Homing(void)
 boolean ecat_init(void)
 {
 	std::string lan_port_name_;
-	lan_port_name_ = "eno1";
+	lan_port_name_ = "eth0";
 	int n = lan_port_name_.length();
 
 	char ecat_ifname[n + 1];
@@ -310,10 +310,10 @@ boolean ecat_init(void)
 
 			oloop = ec_slave[0].Obytes;
 			if ((oloop == 0) && (ec_slave[0].Obits > 0)) oloop = 1;
-			//if (oloop > 8) oloop = 8;
+			if (oloop > 8) oloop = 8;
 			iloop = ec_slave[0].Ibytes;
 			if ((iloop == 0) && (ec_slave[0].Ibits > 0)) iloop = 1;
-			//if (iloop > 8) iloop = 8;
+			if (iloop > 8) iloop = 8;
 
 			printf("segments : %d : %d %d %d %d\n",ec_group[0].nsegments ,ec_group[0].IOsegment[0],ec_group[0].IOsegment[1],ec_group[0].IOsegment[2],ec_group[0].IOsegment[3]);
 
@@ -326,8 +326,8 @@ boolean ecat_init(void)
 			ec_receive_processdata(EC_TIMEOUTRET);
 			/* request OP state for all slaves */
 
-			// ec_writestate(0);
-			// ec_statecheck(0, EC_STATE_OPERATIONAL, EC_TIMEOUTSTATE); //wait for OP
+			//ec_writestate(0);
+			//ec_statecheck(0, EC_STATE_OPERATIONAL, EC_TIMEOUTSTATE); //wait for OP
 
 			if (ec_slave[0].state == EC_STATE_OPERATIONAL )
 			{
@@ -496,9 +496,12 @@ int main(int argc, char * argv[])
 	}
 	else
 	{
-		if(check_param_result == NUMOFSERVO_DRIVE)	check_param = true;
-		else check_param = false;
+		//if(check_param_result == NUMOFSERVO_DRIVE)	check_param = true;
+		//else check_param = false;
+		check_param = true;
 	}
+	
+	check_param = true; // for test
 
 	if(check_param == true)
 	{
@@ -520,6 +523,11 @@ int main(int argc, char * argv[])
 		int count = 0;
 		//linear_actuator_data.clear();
 	}
+
+	rclcpp::sleep_for(5s);
+	RCLCPP_WARN(enode->get_logger(), "Start Motor Control");
+	run_flag = true;
+	rclcpp::sleep_for(5s);
 
 	while(run_flag == true && rclcpp::ok())
 	{
@@ -557,22 +565,18 @@ int main(int argc, char * argv[])
 				ec_SDOwrite(iter+1, 0x6040,0x00,FALSE,os, &op_cmd,EC_TIMEOUTRXM); //change slave operation mode
 				printf("set OP mod");
 
-				os=sizeof(profile_velocity); profile_velocity = 0x7D0;	// pre state
+				os=sizeof(profile_velocity); profile_velocity = 0x3E8;	// pre state
 				ec_SDOwrite(iter+1, 0x6081,0x00,FALSE,os, &profile_velocity,EC_TIMEOUTRXM); //change slave operation mode
 				printf("profile veloicty: %d\n", profile_velocity);
 
 				os=sizeof(target_position);
-				if((iter+1 == 1) || (iter+1 == 6) || (iter+1 == 7) || (iter+1 == 12) || (iter+1 == 13) || (iter+1 == 18) || (iter+1 == 19) || (iter+1 == 24))
+				if((iter+1 == 1) || (iter+1 == 3) || (iter+1 == 7) || (iter+1 == 12) || (iter+1 == 13) || (iter+1 == 18) || (iter+1 == 19) || (iter+1 == 24))
 				{
 					target_position = 50000;
 				}
-				else if((iter+1 == 2) || (iter+1 == 5) || (iter+1 == 8) || (iter+1 == 11) || (iter+1 == 14) || (iter+1 == 17) || (iter+1 == 20) || (iter+1 == 23))
+				else if((iter+1 == 2) || (iter+1 == 4) || (iter+1 == 8) || (iter+1 == 11) || (iter+1 == 14) || (iter+1 == 17) || (iter+1 == 20) || (iter+1 == 23))
 				{
 					target_position = 50000;
-				}
-				else if((iter+1 == 3) || (iter+1 == 4) || (iter+1 == 9) || (iter+1 == 10) || (iter+1 == 15) || (iter+1 == 16) || (iter+1 == 21) || (iter+1 == 22))
-				{
-					target_position = 80086;
 				}
 
 				ec_SDOwrite(iter+1, 0x607A,0x00, FALSE, os, &target_position, EC_TIMEOUTRXM); //read status of driver
@@ -606,22 +610,18 @@ int main(int argc, char * argv[])
 				ec_SDOwrite(iter+1, 0x6040,0x00,FALSE,os, &op_cmd,EC_TIMEOUTRXM); //change slave operation mode
 				printf("set OP mod");
 
-				os=sizeof(profile_velocity); profile_velocity = 0x7D0;	// pre state
+				os=sizeof(profile_velocity); profile_velocity = 0x3E8;	// pre state
 				ec_SDOwrite(iter+1, 0x6081,0x00,FALSE,os, &profile_velocity,EC_TIMEOUTRXM); //change slave operation mode
 				printf("profile veloicty: %d\n", profile_velocity);
 
 				os=sizeof(target_position);
-				if((iter+1 == 1) || (iter+1 == 6) || (iter+1 == 7) || (iter+1 == 12) || (iter+1 == 13) || (iter+1 == 18) || (iter+1 == 19) || (iter+1 == 24))
+				if((iter+1 == 1) || (iter+1 == 3) || (iter+1 == 7) || (iter+1 == 12) || (iter+1 == 13) || (iter+1 == 18) || (iter+1 == 19) || (iter+1 == 24))
 				{
 					target_position = 500000;
 				}
-				else if((iter+1 == 2) || (iter+1 == 5) || (iter+1 == 8) || (iter+1 == 11) || (iter+1 == 14) || (iter+1 == 17) || (iter+1 == 20) || (iter+1 == 23))
+				else if((iter+1 == 2) || (iter+1 == 4) || (iter+1 == 8) || (iter+1 == 11) || (iter+1 == 14) || (iter+1 == 17) || (iter+1 == 20) || (iter+1 == 23))
 				{
 					target_position = 500000;
-				}
-				else if((iter+1 == 3) || (iter+1 == 4) || (iter+1 == 9) || (iter+1 == 10) || (iter+1 == 15) || (iter+1 == 16) || (iter+1 == 21) || (iter+1 == 22))
-				{
-					target_position = 80086;
 				}
 
 				ec_SDOwrite(iter+1, 0x607A,0x00, FALSE, os, &target_position, EC_TIMEOUTRXM); //read status of driver
@@ -660,17 +660,13 @@ int main(int argc, char * argv[])
 				printf("profile veloicty: %d\n", profile_velocity);
 
 				os=sizeof(target_position);
-				if((iter+1 == 1) || (iter+1 == 6) || (iter+1 == 7) || (iter+1 == 12) || (iter+1 == 13) || (iter+1 == 18) || (iter+1 == 19) || (iter+1 == 24))
+				if((iter+1 == 1) || (iter+1 == 3))
 				{
 					target_position = goal_pos[0];
 				}
-				else if((iter+1 == 2) || (iter+1 == 5) || (iter+1 == 8) || (iter+1 == 11) || (iter+1 == 14) || (iter+1 == 17) || (iter+1 == 20) || (iter+1 == 23))
+				else if((iter+1 == 2) || (iter+1 == 4))
 				{
 					target_position = goal_pos[1];
-				}
-				else if((iter+1 == 3) || (iter+1 == 4) || (iter+1 == 9) || (iter+1 == 10) || (iter+1 == 15) || (iter+1 == 16) || (iter+1 == 21) || (iter+1 == 22))
-				{
-					target_position = 80086;
 				}
 
 				ec_SDOwrite(iter+1, 0x607A,0x00, FALSE, os, &target_position, EC_TIMEOUTRXM); //read status of driver
@@ -709,17 +705,13 @@ int main(int argc, char * argv[])
 				printf("profile veloicty: %d\n", profile_velocity);
 
 				os=sizeof(target_position);
-				if((iter+1 == 1) || (iter+1 == 6) || (iter+1 == 7) || (iter+1 == 12) || (iter+1 == 13) || (iter+1 == 18) || (iter+1 == 19) || (iter+1 == 24))
+				if((iter+1 == 1) || (iter+1 == 3) || (iter+1 == 7) || (iter+1 == 12) || (iter+1 == 13) || (iter+1 == 18) || (iter+1 == 19) || (iter+1 == 24))
 				{
 					target_position = 200000;
 				}
-				else if((iter+1 == 2) || (iter+1 == 5) || (iter+1 == 8) || (iter+1 == 11) || (iter+1 == 14) || (iter+1 == 17) || (iter+1 == 20) || (iter+1 == 23))
+				else if((iter+1 == 2) || (iter+1 == 4) || (iter+1 == 8) || (iter+1 == 11) || (iter+1 == 14) || (iter+1 == 17) || (iter+1 == 20) || (iter+1 == 23))
 				{
 					target_position = 200000;
-				}
-				else if((iter+1 == 3) || (iter+1 == 4) || (iter+1 == 9) || (iter+1 == 10) || (iter+1 == 15) || (iter+1 == 16) || (iter+1 == 21) || (iter+1 == 22))
-				{
-					target_position = 80086;
 				}
 
 				ec_SDOwrite(iter+1, 0x607A,0x00, FALSE, os, &target_position, EC_TIMEOUTRXM); //read status of driver
@@ -820,8 +812,9 @@ int main(int argc, char * argv[])
 		{
 			RCLCPP_WARN(enode->get_logger(),"Start Base Mode in 5 seconds");
 			rclcpp::sleep_for(5s);
+			play_count = 1;
 		}
-		rclcpp::spin(enode);
+		//rclcpp::spin(enode);
 	}
 
 	rclcpp::shutdown();
